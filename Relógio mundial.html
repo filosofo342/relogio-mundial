@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Relógio mundial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #EEF3F7; --fg: #14213A; --muted: #5B6B85; --line: #CBD6E2;
+  --night: #1B2745; --dawn: #F4C98A; --day: #BFDDF2; --sun: #E8A21B;
+  --accent: #14213A; --accent-fg: #EEF3F7;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E1628; --fg: #E7EEF8; --muted: #93A3BE; --line: #26334F;
+    --night: #070C18; --dawn: #8A5E2B; --day: #3F6E93; --sun: #F5B93A;
+    --accent: #E7EEF8; --accent-fg: #0E1628;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E1628; --fg: #E7EEF8; --muted: #93A3BE; --line: #26334F;
+  --night: #070C18; --dawn: #8A5E2B; --day: #3F6E93; --sun: #F5B93A;
+  --accent: #E7EEF8; --accent-fg: #0E1628;
+}
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font-family: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif;
+  line-height: 1.4;
+}
+main { max-width: 760px; margin: 0 auto; padding: 28px 20px 48px; }
+header { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+h1 { font-size: clamp(2rem, 7vw, 3.2rem); line-height: 1; margin: 0; font-weight: 700; letter-spacing: -0.02em; }
+.sub { color: var(--muted); margin: 8px 0 0; font-size: .95rem; }
+.toggle { display: flex; border: 1.5px solid var(--fg); border-radius: 999px; overflow: hidden; }
+.toggle button {
+  font: inherit; font-size: .9rem; border: 0; background: transparent; color: var(--fg);
+  padding: 8px 16px; cursor: pointer;
+}
+.toggle button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); }
+button:focus-visible, select:focus-visible { outline: 3px solid var(--sun); outline-offset: 2px; }
+
+ul { list-style: none; margin: 32px 0 0; padding: 0; }
+li { padding: 18px 0 20px; border-top: 1px solid var(--line); }
+li:last-child { border-bottom: 1px solid var(--line); }
+.row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.city { font-size: 1.25rem; font-weight: 700; margin: 0; }
+.meta { color: var(--muted); font-size: .9rem; margin: 2px 0 0; }
+.time { font-size: clamp(2rem, 9vw, 3rem); font-weight: 400; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; white-space: nowrap; }
+.time small { font-size: .45em; color: var(--muted); margin-left: 4px; }
+
+.track {
+  position: relative; height: 10px; border-radius: 999px; margin-top: 14px;
+  background: linear-gradient(90deg,
+    var(--night) 0%, var(--night) 22%, var(--dawn) 27%, var(--day) 33%,
+    var(--day) 67%, var(--dawn) 73%, var(--night) 78%, var(--night) 100%);
+}
+.dot {
+  position: absolute; top: 50%; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--sun); border: 3px solid var(--bg); transform: translate(-50%, -50%);
+}
+.ticks { display: flex; justify-content: space-between; color: var(--muted); font-size: .75rem; margin-top: 6px; font-variant-numeric: tabular-nums; }
+.rm {
+  font: inherit; font-size: .8rem; color: var(--muted); background: none; border: 0;
+  cursor: pointer; padding: 4px 0; text-decoration: underline;
+}
+.rm:hover { color: var(--fg); }
+
+.add { display: flex; gap: 10px; margin-top: 28px; flex-wrap: wrap; }
+select {
+  flex: 1 1 200px; font: inherit; padding: 11px 14px; border-radius: 10px;
+  border: 1.5px solid var(--line); background: var(--bg); color: var(--fg);
+}
+.add button {
+  font: inherit; font-weight: 700; padding: 11px 20px; border-radius: 10px; border: 0;
+  background: var(--accent); color: var(--accent-fg); cursor: pointer;
+}
+.empty { color: var(--muted); padding: 24px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>Relógio mundial</h1>
+      <p class="sub" id="local"></p>
+    </div>
+    <div class="toggle" role="group" aria-label="Formato de hora">
+      <button id="f24" aria-pressed="true">24 h</button>
+      <button id="f12" aria-pressed="false">12 h</button>
+    </div>
+  </header>
+
+  <ul id="list"></ul>
+
+  <div class="add">
+    <select id="sel" aria-label="Cidade para adicionar"></select>
+    <button id="addBtn">Adicionar cidade</button>
+  </div>
+</main>
+
+<script>
+const CITIES = [
+  { n: "São Paulo", z: "America/Sao_Paulo" },
+  { n: "Lisboa", z: "Europe/Lisbon" },
+  { n: "Nova York", z: "America/New_York" },
+  { n: "Los Angeles", z: "America/Los_Angeles" },
+  { n: "Cidade do México", z: "America/Mexico_City" },
+  { n: "Londres", z: "Europe/London" },
+  { n: "Paris", z: "Europe/Paris" },
+  { n: "Moscou", z: "Europe/Moscow" },
+  { n: "Cairo", z: "Africa/Cairo" },
+  { n: "Joanesburgo", z: "Africa/Johannesburg" },
+  { n: "Dubai", z: "Asia/Dubai" },
+  { n: "Mumbai", z: "Asia/Kolkata" },
+  { n: "Xangai", z: "Asia/Shanghai" },
+  { n: "Tóquio", z: "Asia/Tokyo" },
+  { n: "Sydney", z: "Australia/Sydney" }
+];
+const DEFAULT = ["America/Sao_Paulo", "Europe/Lisbon", "America/New_York", "Asia/Tokyo"];
+
+let active = DEFAULT.slice();
+let h12 = false;
+try {
+  const s = JSON.parse(localStorage.getItem("relogio") || "null");
+  if (s && Array.isArray(s.active)) active = s.active.filter(z => CITIES.some(c => c.z === z));
+  if (s && s.h12) h12 = true;
+} catch (e) {}
+function save() {
+  try { localStorage.setItem("relogio", JSON.stringify({ active, h12 })); } catch (e) {}
+}
+
+const $ = id => document.getElementById(id);
+const list = $("list"), sel = $("sel");
+
+function parts(z, date) {
+  const f = new Intl.DateTimeFormat("en-GB", {
+    timeZone: z, hourCycle: "h23", year: "numeric", month: "numeric",
+    day: "numeric", hour: "numeric", minute: "numeric", second: "numeric"
+  });
+  const o = {};
+  f.formatToParts(date).forEach(p => { if (p.type !== "literal") o[p.type] = +p.value; });
+  return o;
+}
+const pad = n => String(n).padStart(2, "0");
+
+function fmtTime(p) {
+  if (!h12) return { t: pad(p.hour) + ":" + pad(p.minute) + ":" + pad(p.second), s: "" };
+  const h = p.hour % 12 || 12;
+  return { t: h + ":" + pad(p.minute) + ":" + pad(p.second), s: p.hour < 12 ? "AM" : "PM" };
+}
+
+function build() {
+  list.innerHTML = "";
+  if (!active.length) {
+    list.innerHTML = '<li class="empty">Nenhuma cidade na lista. Escolha uma abaixo para começar.</li>';
+  }
+  active.forEach(z => {
+    const c = CITIES.find(x => x.z === z);
+    const li = document.createElement("li");
+    li.dataset.z = z;
+    li.innerHTML =
+      '<div class="row"><div><p class="city">' + c.n + '</p><p class="meta"></p></div>' +
+      '<div class="time"></div></div>' +
+      '<div class="track" role="img"><span class="dot"></span></div>' +
+      '<div class="ticks"><span>0h</span><span>6h</span><span>12h</span><span>18h</span><span>24h</span></div>' +
+      '<button class="rm" aria-label="Remover ' + c.n + '">Remover</button>';
+    list.appendChild(li);
+  });
+  const free = CITIES.filter(c => !active.includes(c.z));
+  sel.innerHTML = free.map(c => '<option value="' + c.z + '">' + c.n + '</option>').join("");
+  $("addBtn").disabled = !free.length;
+  tick();
+}
+
+function tick() {
+  const now = new Date();
+  const loc = parts(Intl.DateTimeFormat().resolvedOptions().timeZone, now);
+  const locMs = Date.UTC(loc.year, loc.month - 1, loc.day, loc.hour, loc.minute, loc.second);
+  const locDay = Date.UTC(loc.year, loc.month - 1, loc.day);
+
+  list.querySelectorAll("li[data-z]").forEach(li => {
+    const p = parts(li.dataset.z, now);
+    const ms = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second);
+    const dayDiff = Math.round((Date.UTC(p.year, p.month - 1, p.day) - locDay) / 864e5);
+    const hrs = Math.round((ms - locMs) / 18e5) / 2;
+    const day = dayDiff === 0 ? "Hoje" : dayDiff > 0 ? "Amanhã" : "Ontem";
+    const off = hrs === 0 ? "mesmo horário que você" :
+      (hrs > 0 ? "+" : "−") + Math.abs(hrs).toString().replace(".", ",") + " h em relação a você";
+    const f = fmtTime(p);
+    li.querySelector(".meta").textContent = day + " · " + off;
+    li.querySelector(".time").innerHTML = f.t + (f.s ? "<small>" + f.s + "</small>" : "");
+    const frac = (p.hour * 3600 + p.minute * 60 + p.second) / 86400;
+    li.querySelector(".dot").style.left = (frac * 100) + "%";
+    li.querySelector(".track").setAttribute("aria-label", "Hora local " + pad(p.hour) + ":" + pad(p.minute) + " na faixa de 24 horas");
+  });
+}
+
+list.addEventListener("click", e => {
+  const b = e.target.closest(".rm");
+  if (!b) return;
+  const z = b.closest("li").dataset.z;
+  active = active.filter(x => x !== z);
+  save(); build();
+});
+$("addBtn").addEventListener("click", () => {
+  if (sel.value) { active.push(sel.value); save(); build(); }
+});
+function setFmt(v) {
+  h12 = v;
+  $("f12").setAttribute("aria-pressed", v);
+  $("f24").setAttribute("aria-pressed", !v);
+  save(); tick();
+}
+$("f12").onclick = () => setFmt(true);
+$("f24").onclick = () => setFmt(false);
+
+$("local").textContent = "Seu fuso: " + Intl.DateTimeFormat().resolvedOptions().timeZone.replace("_", " ");
+setFmt(h12);
+build();
+setInterval(tick, 1000);
+</script>
+</body>
+</html>
